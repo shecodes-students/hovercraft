@@ -129,6 +129,8 @@ app.on('ready', function() {
             let code = xTest.keySyms["XK_"+sym];
             xTest.fakeKeyEvent(code, false, 0);
         }
+
+        mainWindow.webContents.send('clicked');
     }
 
 // Emitted when the window is closed.

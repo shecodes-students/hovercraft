@@ -5,6 +5,14 @@ console.log('I am the renderer');
 
 const forEach = (array, func) => [].forEach.call(array, func);
 
+electron.ipcRenderer.on('clicked', ()=>{
+    forEach(
+        document.querySelectorAll("#clicks button"),
+        (button)=>{
+            button.setAttribute('data-active', '0');
+        }
+    );
+});
 
 function getModifiers() {
     var modifiers = [];
