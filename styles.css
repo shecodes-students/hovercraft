@@ -1,0 +1,24 @@
+button:hover {
+   background-color:  rgba(255,255,0,0.5);
+} 
+
+.info {
+    display: none;
+}
+
+button[data-active="1"] {
+    background-color: rgba(255,0,0,0.5);
+    color: white;
+}
+
+/*
+#clicks button[data-button="1"] {
+    background: repeating-linear-gradient(
+        90deg,
+        red,
+        red 30%,
+        green 60%,
+        green 60%
+    );
+}
+*/
