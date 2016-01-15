@@ -33,7 +33,7 @@ app.on('ready', function() {
     mainWindow.loadURL('file://' + __dirname + '/index.html');
     let screen = electron.screen;
 
-    electron.ipcMain.on('buttonPressed', (event, button, modifiers) => {
+    electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
         pull(
             generate(0, (state, cb)=> {
                 setTimeout( ()=> {
@@ -97,28 +97,31 @@ app.on('ready', function() {
                 let timer;
                 if (resting) {
                     timer = setTimeout( ()=>{
-                        buttonClick(button, modifiers);
+                        buttonClick(buttonSpec);
                     }, waitingTime); 
                 } else {
                     clearTimeout(timer);
                 }
+                return false;
             })
         );
     });
 
-    function buttonClick(button, modifiers) {
-        modifiers.forEach((sym)=>{
+    function buttonClick(buttonSpec) {
+        for (sym of buttonSpec.modifiers) {
             let code = xTest.keySyms["XK_"+sym];
             xTest.fakeKeyEvent(code, true, 0);
-        });
+        }
 
-        xTest.fakeButtonEvent(button, true, 0);
-        xTest.fakeButtonEvent(button, false, 0);
+        for(let n=0; n<buttonSpec.count; ++n) {
+            xTest.fakeButtonEvent(buttonSpec.buttonIndex, true, 0);
+            xTest.fakeButtonEvent(buttonSpec.buttonIndex, false, 0);
+        }
 
-        modifiers.forEach((sym)=>{
+        for (sym of buttonSpec.modifiers) {
             let code = xTest.keySyms["XK_"+sym];
             xTest.fakeKeyEvent(code, false, 0);
-        });
+        }
     }
 
 // Emitted when the window is closed.

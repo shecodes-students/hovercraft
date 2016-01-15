@@ -6,15 +6,23 @@
   </head>
   <body>
     <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+    <section id="info">
+        Node <script>document.write(process.versions.node)</script>,
+
+        Chrome <script>document.write(process.versions.chrome)</script>,
+        Electron <script>document.write(process.versions.electron)</script>.
+    </section>
     <section id="clicks">
         <button data-button="1">Left Click!</button>
+        <button data-button="2">Middle Click!</button>
+        <button data-button="3">Right Click!</button>
+        <button data-button="1" data-count="2">Double Click!</button>
     </section>
     <section id="modifiers">
         <button data-symbol="Shift_L">Shift</button>
         <button data-symbol="Alt_L">Alt!</button>
+        <button data-symbol="Alt_R">AltGr</button>
+        <button data-symbol="Ctrl_L">Strg</button>
     </section>
     <script lang="javascript" src="renderer.js"></script>
   </body>

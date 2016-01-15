@@ -3,6 +3,9 @@ var electron = require('electron');
 
 console.log('I am the renderer');
 
+const forEach = (array, func) => [].forEach.call(array, func);
+
+
 function getModifiers() {
     var modifiers = [];
     [].forEach.call(
@@ -14,7 +17,8 @@ function getModifiers() {
     return modifiers;
 }
 
-[].forEach.call(
+// add handler that toggles data-active attribute of modifier buttons
+forEach(
     document.querySelectorAll("#modifiers button"),
     (button)=>{
         button.addEventListener('click', function() {
@@ -26,15 +30,18 @@ function getModifiers() {
     }
 ); 
 
-[].forEach.call(
+forEach(
     document.querySelectorAll("#clicks button"),
     (button)=>{
         button.addEventListener('click', function() {
             console.log('Click');
-            electron.ipcRenderer.send('buttonPressed', button.getAttribute('data-button'), getModifiers());
+            let buttonSpec = {
+                buttonIndex: button.getAttribute('data-button'),
+                count: button.getAttribute('data-count') || 1,
+                modifiers: getModifiers()
+            };
+            electron.ipcRenderer.send('buttonPressed', buttonSpec);
         });
     }
 ); 
-
-
 
