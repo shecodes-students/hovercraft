@@ -32,6 +32,11 @@ app.on('ready', function() {
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
     let screen = electron.screen;
+    let clickingAllowed = true;
+
+    electron.ipcMain.on('clickingAllowed', (event, state) => {
+        clickingAllowed = state;
+    });
 
     electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
         pull(
@@ -97,12 +102,14 @@ app.on('ready', function() {
                 let timer;
                 if (resting) {
                     timer = setTimeout( ()=>{
-                        buttonClick(buttonSpec);
+                        if (clickingAllowed) {
+                            buttonClick(buttonSpec);
+                        }
                     }, waitingTime); 
+                    return false;
                 } else {
                     clearTimeout(timer);
                 }
-                return false;
             })
         );
     });
