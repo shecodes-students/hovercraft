@@ -15,6 +15,14 @@
         Node <script>document.write(process.versions.node)</script>,
         Chrome <script>document.write(process.versions.chrome)</script>,
         Electron <script>document.write(process.versions.electron)</script>.
+        <section id="controls">
+            <label for="jitterWindow">Hysterese (samples)</label>
+            <input type="range" name="jitterWindow">
+            <label for="precisionThresholdPx">Grenzwert (px)</label>
+            <input type="range" name="precisionThresholdPx">
+            <label for="waitingTime">Wartezeit (ms)</label>
+            <input type="range" name="waitingTime">
+        </section>
     </section>
     <section id="clicks">
         <button data-button="1">

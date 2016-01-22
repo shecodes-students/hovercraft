@@ -16,6 +16,11 @@ body,body>section {
     align-content: stretch;
 }
 
+#controls {
+    display: flex;
+    flex-direction: column;
+}
+
 body>section {
     margin-top: 10px;
     margin-bottom: 10px;

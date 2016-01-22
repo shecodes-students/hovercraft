@@ -16,13 +16,16 @@ let conf = require('rc')("hovercraft", {
     width: 160, 
     height: 470,
     x: 20,
-    y: 20
+    y: 20,
+    precisionThresholdPx: {min:0, max:0.1, curr: 0.05},
+    jitterWindow: {min: 1, max: 240, curr: 80},
+    waitingTime: {min: 100, max: 5000, curr: 2000} 
 });
 
 // Config section
-const precisionThresholdPx = 0.05;
-const jitterWindow = 80;
-const waitingTime = 2000; 
+let precisionThresholdPx = conf.precisionThresholdPx.curr;
+let jitterWindow = conf.jitterWindow.curr;
+let waitingTime = conf.waitingTime.curr;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
