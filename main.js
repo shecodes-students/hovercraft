@@ -1,4 +1,6 @@
-// jshint: -w104, esnext
+/* jshint -W104, -W119, -W097, -W067 */
+/* jshint node: true */
+
 'use strict';
 const xTest = require('../node-xtest-bindings/index')();
 const electron = require('electron');
@@ -6,6 +8,16 @@ const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;  // Module to create native browser window.
 const pull = require('pull-stream');
 const generate = require('pull-generate');
+const xtend = require('xtend');
+const path = require('path');
+const fs = require('fs');
+
+let conf = require('rc')("hovercraft", {
+    width: 160, 
+    height: 470,
+    x: 20,
+    y: 20
+});
 
 // Config section
 const precisionThresholdPx = 0.05;
@@ -27,7 +39,45 @@ app.on('window-all-closed', function() {
 
 app.on('ready', function() {
     // Create the browser window.
-    mainWindow = new BrowserWindow({width: 800, height: 600});
+    mainWindow = new BrowserWindow(
+        xtend({
+            minWidth: 80,
+            minHeight: 200,
+            resizable: true,
+            movable: true,
+            alwaysOnTop: true,
+            skipTaskbar: false,
+            title: "Hovercraft",
+            autoHideMenuBar: true,
+            webPreferences: {
+                webgl: false,
+                webaudio: false
+            }
+        },
+            conf
+        )
+    );
+
+    let saveBounds = ()=> {
+        let home = process.env.HOME;
+        let filename = path.join(home, '.hovercraftrc'); 
+        let settings;
+        try {
+            settings = fs.readFileSync(filename);
+        } catch (e) {
+            settings = "{}";
+        }
+        try {
+            settings = JSON.parse(settings);
+            settings = xtend(settings, mainWindow.getBounds());
+            settings = JSON.stringify(settings);
+            fs.writeFileSync(filename, settings);
+        } catch (e) {
+            console.log('Unable to write settings: ' + e.message);
+        }
+    };
+    mainWindow.on('resize', saveBounds);
+    mainWindow.on('move', saveBounds);
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
@@ -115,7 +165,7 @@ app.on('ready', function() {
     });
 
     function buttonClick(buttonSpec) {
-        for (sym of buttonSpec.modifiers) {
+        for (let sym of buttonSpec.modifiers) {
             let code = xTest.keySyms["XK_"+sym];
             xTest.fakeKeyEvent(code, true, 0);
         }
@@ -125,7 +175,7 @@ app.on('ready', function() {
             xTest.fakeButtonEvent(buttonSpec.buttonIndex, false, 0);
         }
 
-        for (sym of buttonSpec.modifiers) {
+        for (let sym of buttonSpec.modifiers) {
             let code = xTest.keySyms["XK_"+sym];
             xTest.fakeKeyEvent(code, false, 0);
         }

@@ -1,9 +1,20 @@
+/* jshint -W104, -W119, -W097, -W067 */
+/* jshint node: true */
+/* jshint browser: true */
 'use strict';
 var electron = require('electron');
 
 console.log('I am the renderer');
 
 const forEach = (array, func) => [].forEach.call(array, func);
+
+
+document.querySelector('#settings').addEventListener('click', ()=> {
+    console.log('fires');
+    let infoSection = document.querySelector('#info');
+    console.log(infoSection.display);
+    infoSection.style.display = {"none": "block", "block": "none"}[infoSection.style.display || "none"];
+});
 
 electron.ipcRenderer.on('clicked', ()=>{
     forEach(

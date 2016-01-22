@@ -7,10 +7,12 @@
     <title>Hello World!</title>
   </head>
   <body>
-    <h1>Hello World!</h1>
+    <button id="settings">
+        <i class="icon-settings"></i>
+    </button>
     <section id="info">
+        Hovercraft <script>document.write(require('./package.json').version)</script>
         Node <script>document.write(process.versions.node)</script>,
-
         Chrome <script>document.write(process.versions.chrome)</script>,
         Electron <script>document.write(process.versions.electron)</script>.
     </section>
