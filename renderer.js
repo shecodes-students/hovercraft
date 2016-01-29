@@ -5,6 +5,7 @@
 var electron = require('electron');
 
 console.log('I am the renderer');
+let waitingTime = 2000;
 
 const forEach = (array, func) => [].forEach.call(array, func);
 
@@ -16,13 +17,60 @@ document.querySelector('#settings').addEventListener('click', ()=> {
     infoSection.style.display = {"none": "block", "block": "none"}[infoSection.style.display || "none"];
 });
 
-electron.ipcRenderer.on('clicked', ()=>{
+let format=(value)=>{
+    return Math.floor(value*10000)/10000;
+};
+
+forEach(
+    document.querySelectorAll('input[type="range"]'),
+    (slider)=>{
+        let name = slider.name;
+        let span = slider.parentElement.querySelector('span[name="' + name + '"]');
+        slider.addEventListener('input', (event) => {
+            let value = slider.value;
+            span.innerHTML = "(" + format(value) + ")";
+        });
+        slider.addEventListener('change', (event) => {
+            if (name === "waitingTime") {
+                waitingTime = slider.value;
+            }
+            let value = slider.value;
+            let configUpdate = {name: name, value: value};
+            electron.ipcRenderer.send('configUpdate', configUpdate);
+        });
+    }
+);
+
+
+electron.ipcRenderer.on('config', (event, config) => {
+    waitingTime = config.waitingTime.curr;
+    forEach(
+        document.querySelectorAll('input[type="range"]'),
+        (slider)=>{
+            let name = slider.getAttribute('name');
+            let value = config[name].curr;
+            slider.min = config[name].min;
+            slider.max = config[name].max;
+            slider.value = value;
+            let span = slider.parentElement.querySelector('span[name="' + name + '"]');
+            span.innerHTML = "(" + format(value) + ")";
+        }
+    );
+});
+        
+
+let deactivateOtherClickButtons = () => {
     forEach(
         document.querySelectorAll("#clicks button"),
         (button)=>{
             button.setAttribute('data-active', '0');
         }
     );
+};
+
+electron.ipcRenderer.on('clicked', ()=>{
+    console.log('clicked event fired');
+    deactivateOtherClickButtons();
 });
 
 function getModifiers() {
@@ -49,7 +97,7 @@ let timer = (() => {
     return {
         start: (cb) => {
             if (timerId) this.stop(timerId);
-            timerId = setTimeout(cb, 2000); // TODO: get from config;
+            timerId = setTimeout(cb, waitingTime);
         },
 
         stop: ()=>{
@@ -76,8 +124,8 @@ forEach(
                     active = {0:1, 1:0}[active || 0];
                     button.setAttribute('data-active', active);
                 } else {
+                    deactivateOtherClickButtons();
                     button.setAttribute('data-active', '1');
-                    console.log(getButtonSpec(button));
                     electron.ipcRenderer.send(
                         'buttonPressed',
                         getButtonSpec(button)

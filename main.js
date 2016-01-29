@@ -22,11 +22,6 @@ let conf = require('rc')("hovercraft", {
     waitingTime: {min: 100, max: 5000, curr: 2000} 
 });
 
-// Config section
-let precisionThresholdPx = conf.precisionThresholdPx.curr;
-let jitterWindow = conf.jitterWindow.curr;
-let waitingTime = conf.waitingTime.curr;
-
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
@@ -61,7 +56,7 @@ app.on('ready', function() {
         )
     );
 
-    let saveBounds = ()=> {
+    let updateConfig = (type, data)=> {
         let home = process.env.HOME;
         let filename = path.join(home, '.hovercraftrc'); 
         let settings;
@@ -72,15 +67,40 @@ app.on('ready', function() {
         }
         try {
             settings = JSON.parse(settings);
-            settings = xtend(settings, mainWindow.getBounds());
+            switch(type) {
+                case 'configUpdate':
+                    if (!settings.hasOwnProperty(data.name)) {
+                        settings[data.name]={};
+                    }
+                    settings[data.name].curr = data.value;
+
+                    if (!conf.hasOwnProperty(data.name)) {
+                        conf[data.name]={};
+                    }
+                    conf[data.name].curr = data.value;
+                    break;
+                case 'resize':
+                case 'move':
+                    settings = xtend(settings, mainWindow.getBounds());
+                    break;
+            }
             settings = JSON.stringify(settings);
             fs.writeFileSync(filename, settings);
         } catch (e) {
             console.log('Unable to write settings: ' + e.message);
         }
     };
-    mainWindow.on('resize', saveBounds);
-    mainWindow.on('move', saveBounds);
+
+
+    mainWindow.webContents.on('dom-ready', () => {
+        //send config values
+        mainWindow.webContents.send('config', conf);
+    });
+
+    mainWindow.on('resize', () => {updateConfig('resize');});
+    mainWindow.on('move', () => {updateConfig('move');});
+
+    electron.ipcMain.on('configUpdate', (event, data) => {updateConfig('configUpdate', data);});
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
@@ -91,7 +111,10 @@ app.on('ready', function() {
         clickingAllowed = state;
     });
 
+    let count = 0;
     electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
+        count++;
+        const jitterWindow = conf.jitterWindow.curr;
         pull(
             generate(0, (state, cb)=> {
                 setTimeout( ()=> {
@@ -138,7 +161,7 @@ app.on('ready', function() {
             // map distance to isResting
             pull.map( (distance)=> {
                 //console.log(distance);
-                return distance < precisionThresholdPx;
+                return distance < conf.precisionThresholdPx.curr;
             } ),
 
             // filter state transitions
@@ -155,10 +178,17 @@ app.on('ready', function() {
                 let timer;
                 if (resting) {
                     timer = setTimeout( ()=>{
+                        count--;
+                        console.log(count);
                         if (clickingAllowed) {
-                            buttonClick(buttonSpec);
+                            if (count===0) {
+                                // if there should ever be more than
+                                // one click in the pipeline
+                                // only the last one is executed.
+                                buttonClick(buttonSpec);
+                            }
                         }
-                    }, waitingTime); 
+                    }, conf.waitingTime.curr); 
                     return false;
                 } else {
                     clearTimeout(timer);

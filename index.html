@@ -17,10 +17,13 @@
         Electron <script>document.write(process.versions.electron)</script>.
         <section id="controls">
             <label for="jitterWindow">Hysterese (samples)</label>
+            <span name="jitterWindow"></span>
             <input type="range" name="jitterWindow">
             <label for="precisionThresholdPx">Grenzwert (px)</label>
-            <input type="range" name="precisionThresholdPx">
+            <span name="precisionThresholdPx"></span>
+            <input type="range" name="precisionThresholdPx" step="any">
             <label for="waitingTime">Wartezeit (ms)</label>
+            <span name="waitingTime"></span>
             <input type="range" name="waitingTime">
         </section>
     </section>
