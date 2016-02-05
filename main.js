@@ -2,7 +2,7 @@
 /* jshint node: true */
 
 'use strict';
-const xTest = require('../node-xtest-bindings/index')();
+const xTest = require('node-xtest-bindings')();
 const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;  // Module to create native browser window.

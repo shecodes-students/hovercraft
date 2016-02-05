@@ -1,34 +1,43 @@
 {
-  "name": "electron-quick-start",
+  "name": "hovercraft",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "trigger different kinds of clicks when the pointer hovers. With support for modifier keys (alt, shift, ctrl etc.)",
   "main": "main.js",
   "scripts": {
     "start": "electron main.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/atom/electron-quick-start.git"
+    "url": "git+https://github.com/shecodes-students/hovercraft.git"
   },
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial"
+    "dwellclick",
+    "hoverclick",
+    "assistive technology",
+    "acessibility",
+    "universal access",
+    "pointing and clicking",
+    "XServer"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "contributors": [
+      "Julia Friesel <julia.friesel@gmail.com>",
+      "Jan Bölsche <jan@lagomorph.de>",
+      "Leonor Oliveira <leonorfmartins@gmail.com>"
+  ],
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/atom/electron-quick-start/issues"
+      "url": "https://github.com/shecodes-students/hovercraft/issues"
   },
-  "homepage": "https://github.com/atom/electron-quick-start#readme",
+  "homepage": "https://github.com/shecodes-students/hovercraft#readme",
   "devDependencies": {
-    "electron-prebuilt": "^0.36.0"
+    "electron-prebuilt": "^0.36.0",
+    "electron-packager": "~5.2.1"
   },
   "dependencies": {
     "pull-generate": "^2.2.0",
     "pull-stream": "^3.1.0",
     "xtend": "~4.0.1",
-    "rc": "~1.1.6"
+    "rc": "~1.1.6",
+    "node-xtest-bindings": "jfr3000/node-xtest-bindings"
   }
 }
