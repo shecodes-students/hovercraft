@@ -37,24 +37,29 @@ app.on('window-all-closed', function() {
 
 app.on('ready', function() {
     // Create the browser window.
-    mainWindow = new BrowserWindow(
-        xtend({
-            minWidth: 80,
-            minHeight: 200,
-            resizable: true,
-            movable: true,
-            alwaysOnTop: true,
-            skipTaskbar: false,
-            title: "Hovercraft",
-            autoHideMenuBar: true,
-            webPreferences: {
-                webgl: false,
-                webaudio: false
-            }
-        },
-            conf
-        )
+    let usedConfig = xtend({
+        //type: "notification",
+        minWidth: 80,
+        minHeight: 200,
+        resizable: true,
+        movable: true,
+        //alwaysOnTop: true,
+        skipTaskbar: false,
+        title: "Hovercraft",
+        autoHideMenuBar: true,
+        webPreferences: {
+            webgl: false,
+            webaudio: false
+        }
+    },
+        conf
     );
+    console.log(usedConfig);
+    mainWindow = new BrowserWindow(
+        usedConfig
+    );
+
+    console.log(mainWindow.isAlwaysOnTop());
 
     let updateConfig = (type, data)=> {
         let home = process.env.HOME;
@@ -93,6 +98,7 @@ app.on('ready', function() {
 
 
     mainWindow.webContents.on('dom-ready', () => {
+        mainWindow.setAlwaysOnTop(true);
         //send config values
         mainWindow.webContents.send('config', conf);
     });
