@@ -1,6 +1,6 @@
 {
   "name": "hovercraft",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "trigger different kinds of clicks when the pointer hovers. With support for modifier keys (alt, shift, ctrl etc.)",
   "main": "main.js",
   "scripts": {
