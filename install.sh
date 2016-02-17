@@ -1,6 +1,6 @@
 mkdir -p $HOME/hovercraft &&
 # download tar file and untar in ~/hovercraft
-curl http://now.she.codes/hovercraft/hovercraft.tar.gz | tar -xz -C $HOME/hovercraft &&
+curl http://kitchen-sessions.org/hovercraft/hovercraft.tar.gz | tar -xz -C $HOME/hovercraft &&
 
 cat << EOF > $HOME/.config/autostart/hovercraft.desktop
 [Desktop Entry]
