@@ -14,6 +14,26 @@ const xtend = require('xtend');
 const path = require('path');
 const fs = require('fs');
 
+const pullMouse = (screen)=> {
+    return generate(0, (state, cb)=> {
+        setTimeout( ()=> {
+            cb(null, screen.getCursorScreenPoint());
+        }, 5);
+    });
+};
+
+const pullChanged = ()=> {
+    // filter state transitions
+    return pull.filter( (()=>{
+        let oldState;
+        return (newState)=>{
+            let transition = oldState !== newState;
+            oldState = newState;
+            return transition;
+        };
+    })());
+};
+
 let conf = require('rc')("hovercraft", {
     width: 160, 
     height: 470,
@@ -27,6 +47,7 @@ let conf = require('rc')("hovercraft", {
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+let bounds;
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -60,7 +81,32 @@ app.on('ready', function() {
     mainWindow = new BrowserWindow(
         usedConfig
     );
+    bounds = mainWindow.getBounds();
 
+    pull(
+        pullMouse(electron.screen),
+        pull.map( (pos) => { 
+            return { 
+                x: pos.x - bounds.x,
+                y: pos.y - bounds.y
+            };
+        }
+        ),
+        pull.map( (pos)=> {
+            let touched = pos.x >= 0 && pos.y >= 0 &&
+                pos.x < bounds.width && pos.y < bounds.height;
+            return touched ? pos : {x: null, y: null};
+        }),
+        pullChanged(),
+        pull.map( (pos)=>{ 
+            if (pos.x === null) return {name: "mouseleave"};
+            return {name:"mousemove", position: pos};
+        }),
+        pull.drain( (event)=> {
+            if (mainWindow) 
+                mainWindow.webContents.send(event.name, event.position);
+        })
+    );
     console.log(mainWindow.isAlwaysOnTop());
 
     let updateConfig = (type, data)=> {
@@ -96,6 +142,7 @@ app.on('ready', function() {
         } catch (e) {
             console.log('Unable to write settings: ' + e.message);
         }
+        bounds = mainWindow.getBounds();
     };
 
 
@@ -112,7 +159,6 @@ app.on('ready', function() {
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
-    let screen = electron.screen;
     let clickingAllowed = true;
 
     electron.ipcMain.on('clickingAllowed', (event, state) => {
@@ -124,11 +170,7 @@ app.on('ready', function() {
         count++;
         const jitterWindow = conf.jitterWindow.curr;
         pull(
-            generate(0, (state, cb)=> {
-                setTimeout( ()=> {
-                    cb(null, screen.getCursorScreenPoint());
-                }, 5);
-            }), 
+            pullMouse(electron.screen),
 
             // sliding-window de-jitter
             pull.asyncMap( ( ()=> {
@@ -172,15 +214,7 @@ app.on('ready', function() {
                 return distance < conf.precisionThresholdPx.curr;
             } ),
 
-            // filter state transitions
-            pull.filter( (()=>{
-                let oldState;
-                return (newState)=>{
-                    let transition = oldState !== newState;
-                    oldState = newState;
-                    return transition;
-                };
-            })()),
+            pullChanged(),
 
             pull.drain((resting)=> {
                 let timer;

@@ -41,6 +41,41 @@ forEach(
     }
 );
 
+const fireEvent = (el, eventName) => {
+    forEach(el.myListeners || [], (l)=> {
+        if (eventName === l.name) {
+            console.log('fire event', eventName);
+            l.handler();
+        }
+    });
+};
+
+
+let currentButton = null;
+electron.ipcRenderer.on('mousemove', (event, pos) => {
+    let el = document.elementFromPoint(pos.x, pos.y);
+    while(el !== null && el.tagName !== 'BUTTON') el = el.parentElement;
+    if (currentButton != el) {
+        if (currentButton) {
+            fireEvent(currentButton, "mouseleave");
+            currentButton.classList.remove('hover');
+        }
+        if (el) {
+            fireEvent(el, "mouseenter");
+            el.classList.add('hover');
+        } 
+        currentButton = el;
+    }
+});
+
+electron.ipcRenderer.on('mouseleave', () => {
+    document.body.style.backgroundColor=null;
+    if (currentButton) {
+        fireEvent(currentButton, "mouseleave");
+        currentButton.classList.remove('hover');
+        currentButton = null;
+    }
+});
 
 electron.ipcRenderer.on('config', (event, config) => {
     waitingTime = config.waitingTime.curr;
@@ -71,6 +106,7 @@ let deactivateOtherClickButtons = () => {
 electron.ipcRenderer.on('clicked', ()=>{
     console.log('clicked event fired');
     deactivateOtherClickButtons();
+    currentButton = null;
 });
 
 function getModifiers() {
@@ -113,7 +149,19 @@ let getButtonType = (button) => {
 forEach(
     document.querySelectorAll("#clicks button,#modifiers button"),
     (button)=>{
-        button.addEventListener('mouseenter', function() {
+        button.addMyEventListener = (name, handler)=>{
+            console.log('adding listener for', name);
+            let l = button.myListeners || [];
+            l.push({name, handler});
+            button.myListeners = l;
+        };
+    }
+);
+
+forEach(
+    document.querySelectorAll("#clicks button,#modifiers button"),
+    (button)=>{
+        button.addMyEventListener('mouseenter', () => {
             console.log('mouse enter');
             electron.ipcRenderer.send('clickingAllowed', false);
             timer.start(() => {
@@ -133,7 +181,7 @@ forEach(
                 }
             });
         });
-        button.addEventListener('mouseleave', function() {
+        button.addMyEventListener('mouseleave', () => {
             console.log('mouse leave');
             electron.ipcRenderer.send('clickingAllowed', true);
             timer.stop();
