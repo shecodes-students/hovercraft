@@ -238,6 +238,7 @@ app.on('ready', function() {
     function buttonClick(buttonSpec) {
         for (let sym of buttonSpec.modifiers) {
             let code = xTest.keySyms["XK_"+sym];
+            console.log(sym, code);
             xTest.fakeKeyEvent(code, true, 0);
         }
 
