@@ -13,6 +13,7 @@ const generate = require('pull-generate');
 const xtend = require('xtend');
 const path = require('path');
 const fs = require('fs');
+const equal = require('deep-equal');
 
 const pullMouse = (screen)=> {
     return generate(0, (state, cb)=> {
@@ -27,7 +28,7 @@ const pullChanged = ()=> {
     return pull.filter( (()=>{
         let oldState;
         return (newState)=>{
-            let transition = oldState !== newState;
+            let transition = !equal(oldState, newState);
             oldState = newState;
             return transition;
         };
@@ -77,7 +78,6 @@ app.on('ready', function() {
     },
         conf
     );
-    console.log(usedConfig);
     mainWindow = new BrowserWindow(
         usedConfig
     );
@@ -107,7 +107,6 @@ app.on('ready', function() {
                 mainWindow.webContents.send(event.name, event.position);
         })
     );
-    console.log(mainWindow.isAlwaysOnTop());
 
     let updateConfig = (type, data)=> {
         let home = process.env.HOME;
@@ -177,8 +176,6 @@ app.on('ready', function() {
                 let values = [];
                 return (value, cb) => {
                     values.unshift(value);
-                    //console.log(value);
-                    //console.log(values.length);
                     if (values.length < jitterWindow) {
                         return cb(null, undefined);
                     }
@@ -186,7 +183,6 @@ app.on('ready', function() {
                         pull.values(values),
                         pull.reduce((a,b)=>{return {x:a.x+b.x, y:a.y+b.y};}, {x:0, y:0}, (err, sum)=> {
                             values.pop();
-                            //console.log(values);
                             cb(err, {x: sum.x / jitterWindow, y: sum.y / jitterWindow});
                         })
                     );
@@ -210,7 +206,6 @@ app.on('ready', function() {
 
             // map distance to isResting
             pull.map( (distance)=> {
-                //console.log(distance);
                 return distance < conf.precisionThresholdPx.curr;
             } ),
 
@@ -221,13 +216,14 @@ app.on('ready', function() {
                 if (resting) {
                     timer = setTimeout( ()=>{
                         count--;
-                        console.log(count);
-                        if (clickingAllowed) {
-                            if (count===0) {
+                        if (count===0) {
+                            if (clickingAllowed) {
                                 // if there should ever be more than
                                 // one click in the pipeline
                                 // only the last one is executed.
                                 buttonClick(buttonSpec);
+                            } else {
+                                mainWindow.webContents.send('friendly fire');
                             }
                         }
                     }, conf.waitingTime.curr); 

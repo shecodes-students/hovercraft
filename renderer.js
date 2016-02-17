@@ -4,16 +4,13 @@
 'use strict';
 var electron = require('electron');
 
-console.log('I am the renderer');
 let waitingTime = 2000;
 
 const forEach = (array, func) => [].forEach.call(array, func);
 
 
 document.querySelector('#settings').addEventListener('click', ()=> {
-    console.log('fires');
     let infoSection = document.querySelector('#info');
-    console.log(infoSection.display);
     infoSection.style.display = {"none": "block", "block": "none"}[infoSection.style.display || "none"];
 });
 
@@ -44,7 +41,6 @@ forEach(
 const fireEvent = (el, eventName) => {
     forEach(el.myListeners || [], (l)=> {
         if (eventName === l.name) {
-            console.log('fire event', eventName);
             l.handler();
         }
     });
@@ -104,7 +100,11 @@ let deactivateOtherClickButtons = () => {
 };
 
 electron.ipcRenderer.on('clicked', ()=>{
-    console.log('clicked event fired');
+    deactivateOtherClickButtons();
+    currentButton = null;
+});
+
+electron.ipcRenderer.on('friendly fire', ()=>{
     deactivateOtherClickButtons();
     currentButton = null;
 });
@@ -150,7 +150,6 @@ forEach(
     document.querySelectorAll("#clicks button,#modifiers button"),
     (button)=>{
         button.addMyEventListener = (name, handler)=>{
-            console.log('adding listener for', name);
             let l = button.myListeners || [];
             l.push({name, handler});
             button.myListeners = l;
@@ -162,12 +161,10 @@ forEach(
     document.querySelectorAll("#clicks button,#modifiers button"),
     (button)=>{
         button.addMyEventListener('mouseenter', () => {
-            console.log('mouse enter');
             electron.ipcRenderer.send('clickingAllowed', false);
             timer.start(() => {
                 if (getButtonType(button) === 'modifier') {
                     // toggles data-active attribute of modifier buttons
-                    console.log('Click modifier');
                     let active = button.getAttribute('data-active');
                     active = {0:1, 1:0}[active || 0];
                     button.setAttribute('data-active', active);
@@ -182,7 +179,6 @@ forEach(
             });
         });
         button.addMyEventListener('mouseleave', () => {
-            console.log('mouse leave');
             electron.ipcRenderer.send('clickingAllowed', true);
             timer.stop();
         });
@@ -201,7 +197,6 @@ document.querySelector('#testButton').addEventListener('mouseup', function(event
     }
     info.push(buttons[event.which]);
     info = info.join(" ");
-    console.log(info);
     document.querySelector("#testOutput").innerHTML = info;
 });
 
