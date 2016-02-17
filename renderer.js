@@ -187,6 +187,7 @@ forEach(
 
 // testing functionality
 document.querySelector('#testButton').addEventListener('mouseup', function(event) {
+    console.log(event);
     let keys = "meta alt shift ctrl".split(" ");
     let buttons = "none left middle right".split(" ");
     let info = [];
