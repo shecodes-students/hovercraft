@@ -161,7 +161,6 @@ forEach(
     document.querySelectorAll("#clicks button,#modifiers button"),
     (button)=>{
         button.addMyEventListener('mouseenter', () => {
-            electron.ipcRenderer.send('clickingAllowed', false);
             timer.start(() => {
                 if (getButtonType(button) === 'modifier') {
                     // toggles data-active attribute of modifier buttons
@@ -171,15 +170,10 @@ forEach(
                 } else {
                     deactivateOtherClickButtons();
                     button.setAttribute('data-active', '1');
-                    electron.ipcRenderer.send(
-                        'buttonPressed',
-                        getButtonSpec(button)
-                    );
                 }
             });
         });
         button.addMyEventListener('mouseleave', () => {
-            electron.ipcRenderer.send('clickingAllowed', true);
             timer.stop();
         });
     }

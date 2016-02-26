@@ -14,6 +14,7 @@ const xtend = require('xtend');
 const path = require('path');
 const fs = require('fs');
 const equal = require('deep-equal');
+const Abort = require('pull-abortable');
 
 const pullMouse = (screen)=> {
     return generate(0, (state, cb)=> {
@@ -83,6 +84,88 @@ app.on('ready', function() {
     );
     bounds = mainWindow.getBounds();
 
+    let abortable = null;
+    let abort = () => {
+        if (abortable) {
+            abortable.abort();
+            abortable = null;
+        }
+    };
+
+    let currButtonSpec = null;
+    electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
+        currButtonSpec = buttonSpec;
+    });
+
+    let createClickerStream = (buttonSpec) => {
+        abort();
+        abortable = Abort();
+        if (!buttonSpec) return;
+        const jitterWindow = conf.jitterWindow.curr;
+        pull(
+            pullMouse(electron.screen),
+            abortable,
+
+            // sliding-window de-jitter
+            pull.asyncMap( ( ()=> {
+                let values = [];
+                return (value, cb) => {
+                    values.unshift(value);
+                    if (values.length < jitterWindow) {
+                        return cb(null, undefined);
+                    }
+                    pull(
+                        pull.values(values),
+                        pull.reduce((a,b)=>{return {x:a.x+b.x, y:a.y+b.y};}, {x:0, y:0}, (err, sum)=> {
+                            values.pop();
+                            cb(err, {x: sum.x / jitterWindow, y: sum.y / jitterWindow});
+                        })
+                    );
+                };
+            })()),
+
+            // map position to distance
+            pull.map( (() => {
+                let previousPosition;
+                return (currentPosition)=> {
+                    if (previousPosition) {
+                        let distanceX = currentPosition.x - previousPosition.x;
+                        let distanceY = currentPosition.y - previousPosition.y;
+                        previousPosition = currentPosition;
+                        return Math.sqrt(Math.pow(distanceX,2) + Math.pow(distanceY,2));
+                    }
+                    previousPosition = currentPosition;
+                    return undefined;
+                };
+            })()),
+
+            // map distance to isResting
+            pull.map( (distance)=> {
+                return distance < conf.precisionThresholdPx.curr;
+            } ),
+
+            pullChanged(),
+
+            pull.drain((resting)=> {
+                let timer;
+                if (resting) {
+                    timer = setTimeout( ()=>{
+                        //if (clickingAllowed) {
+                            buttonClick(buttonSpec);
+                        //} 
+                        //else {
+                           // mainWindow.webContents.send('friendly fire');
+                        //}
+                    }, conf.waitingTime.curr); 
+                    return false;
+                } else {
+                    clearTimeout(timer);
+                }
+            })
+        );
+    };
+
+    
     pull(
         pullMouse(electron.screen),
         pull.map( (pos) => { 
@@ -99,7 +182,16 @@ app.on('ready', function() {
         }),
         pullChanged(),
         pull.map( (pos)=>{ 
-            if (pos.x === null) return {name: "mouseleave"};
+            if (pos.x === null) {
+                return {name: "mouseleave"};
+                // leaving the UI, we can now start our clickerstream
+                // if we have any actice click buttons
+                createClickerStream(currButtonSpec);
+            } else {
+                // we just entered the UI window
+                // abort any pending clickerstream
+                abort();
+            }
             return {name:"mousemove", position: pos};
         }),
         pull.drain( (event)=> {
@@ -158,82 +250,6 @@ app.on('ready', function() {
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
-    let clickingAllowed = true;
-
-    electron.ipcMain.on('clickingAllowed', (event, state) => {
-        clickingAllowed = state;
-    });
-
-    let count = 0;
-    electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
-        count++;
-        const jitterWindow = conf.jitterWindow.curr;
-        pull(
-            pullMouse(electron.screen),
-
-            // sliding-window de-jitter
-            pull.asyncMap( ( ()=> {
-                let values = [];
-                return (value, cb) => {
-                    values.unshift(value);
-                    if (values.length < jitterWindow) {
-                        return cb(null, undefined);
-                    }
-                    pull(
-                        pull.values(values),
-                        pull.reduce((a,b)=>{return {x:a.x+b.x, y:a.y+b.y};}, {x:0, y:0}, (err, sum)=> {
-                            values.pop();
-                            cb(err, {x: sum.x / jitterWindow, y: sum.y / jitterWindow});
-                        })
-                    );
-                };
-            })()),
-
-            // map position to distance
-            pull.map( (() => {
-                let previousPosition;
-                return (currentPosition)=> {
-                    if (previousPosition) {
-                        let distanceX = currentPosition.x - previousPosition.x;
-                        let distanceY = currentPosition.y - previousPosition.y;
-                        previousPosition = currentPosition;
-                        return Math.sqrt(Math.pow(distanceX,2) + Math.pow(distanceY,2));
-                    }
-                    previousPosition = currentPosition;
-                    return undefined;
-                };
-            })()),
-
-            // map distance to isResting
-            pull.map( (distance)=> {
-                return distance < conf.precisionThresholdPx.curr;
-            } ),
-
-            pullChanged(),
-
-            pull.drain((resting)=> {
-                let timer;
-                if (resting) {
-                    timer = setTimeout( ()=>{
-                        count--;
-                        if (count===0) {
-                            if (clickingAllowed) {
-                                // if there should ever be more than
-                                // one click in the pipeline
-                                // only the last one is executed.
-                                buttonClick(buttonSpec);
-                            } else {
-                                mainWindow.webContents.send('friendly fire');
-                            }
-                        }
-                    }, conf.waitingTime.curr); 
-                    return false;
-                } else {
-                    clearTimeout(timer);
-                }
-            })
-        );
-    });
 
     function buttonClick(buttonSpec) {
         for (let sym of buttonSpec.modifiers) {
