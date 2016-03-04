@@ -1,4 +1,4 @@
-/* jshint -W104, -W119, -W097, -W067 */
+/* jshint -W064, -W104, -W119, -W097, -W067 */
 /* jshint node: true */
 
 // this is a change
@@ -14,14 +14,20 @@ const xtend = require('xtend');
 const path = require('path');
 const fs = require('fs');
 const equal = require('deep-equal');
-const Abort = require('pull-abortable');
 
-const pullMouse = (screen)=> {
-    return generate(0, (state, cb)=> {
+const pullMouse = (screen, name)=> {
+    let doAbort = false;
+    let source = generate(0, (state, cb)=> {
         setTimeout( ()=> {
-            cb(null, screen.getCursorScreenPoint());
+            cb(doAbort ? true : null, screen.getCursorScreenPoint());
         }, 5);
     });
+
+    source.abort = () => {
+        console.log('ABORTING!');
+        doAbort = true; 
+    };
+    return source;
 };
 
 const pullChanged = ()=> {
@@ -87,25 +93,28 @@ app.on('ready', function() {
     let abortable = null;
     let abort = () => {
         if (abortable) {
+            console.log('Aborting');
             abortable.abort();
+            console.log('still alive');
             abortable = null;
         }
     };
 
     let currButtonSpec = null;
     electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
+        console.log('button activate', buttonSpec);
         currButtonSpec = buttonSpec;
     });
 
     let createClickerStream = (buttonSpec) => {
+        console.log('createClickerStream1', buttonSpec);
         abort();
-        abortable = Abort();
         if (!buttonSpec) return;
+        abortable = pullMouse(electron.screen, 'clicker');
+        console.log('createClickerStream');
         const jitterWindow = conf.jitterWindow.curr;
         pull(
-            pullMouse(electron.screen),
             abortable,
-
             // sliding-window de-jitter
             pull.asyncMap( ( ()=> {
                 let values = [];
@@ -123,6 +132,7 @@ app.on('ready', function() {
                     );
                 };
             })()),
+
 
             // map position to distance
             pull.map( (() => {
@@ -146,28 +156,28 @@ app.on('ready', function() {
 
             pullChanged(),
 
-            pull.drain((resting)=> {
-                let timer;
-                if (resting) {
-                    timer = setTimeout( ()=>{
-                        //if (clickingAllowed) {
+            pull.drain( ( () => { 
+                let timer = null;
+                return (resting) => {
+                    if (resting) {
+                        if (timer) clearTimeout(timer);
+                        timer = setTimeout( ()=>{
+                            abort();
                             buttonClick(buttonSpec);
-                        //} 
-                        //else {
-                           // mainWindow.webContents.send('friendly fire');
-                        //}
-                    }, conf.waitingTime.curr); 
-                    return false;
-                } else {
-                    clearTimeout(timer);
-                }
+                        }, conf.waitingTime.curr); 
+                    } else {
+                        clearTimeout(timer);
+                    }
+                };
+            })(), (err) => {
+                console.log('drain ended with err', err);
             })
         );
     };
 
     
     pull(
-        pullMouse(electron.screen),
+        pullMouse(electron.screen, 'position'),
         pull.map( (pos) => { 
             return { 
                 x: pos.x - bounds.x,
@@ -175,24 +185,32 @@ app.on('ready', function() {
             };
         }
         ),
-        pull.map( (pos)=> {
-            let touched = pos.x >= 0 && pos.y >= 0 &&
-                pos.x < bounds.width && pos.y < bounds.height;
-            return touched ? pos : {x: null, y: null};
-        }),
+        pull.map( ( () => {
+            let wasAlreadyTouched = false;
+            return (pos)=> {
+                let touched = pos.x >= 0 && pos.y >= 0 &&
+                    pos.x < bounds.width && pos.y < bounds.height;
+
+                if (touched && !wasAlreadyTouched) {
+                    console.log('enter UI');
+                    abort();
+                } else if (!touched && wasAlreadyTouched) {
+                    // leaving the UI, we can now start our clickerstream
+                    // if we have any active click buttons
+                    console.log('leave UI');
+                    createClickerStream(currButtonSpec);
+                }
+                wasAlreadyTouched = touched;
+                return touched ? pos : {x: null, y: null};
+            };
+        })()),
         pullChanged(),
         pull.map( (pos)=>{ 
             if (pos.x === null) {
                 return {name: "mouseleave"};
-                // leaving the UI, we can now start our clickerstream
-                // if we have any actice click buttons
-                createClickerStream(currButtonSpec);
             } else {
-                // we just entered the UI window
-                // abort any pending clickerstream
-                abort();
+                return {name:"mousemove", position: pos};
             }
-            return {name:"mousemove", position: pos};
         }),
         pull.drain( (event)=> {
             if (mainWindow) 

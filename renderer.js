@@ -170,6 +170,7 @@ forEach(
                 } else {
                     deactivateOtherClickButtons();
                     button.setAttribute('data-active', '1');
+                    electron.ipcRenderer.send('buttonPressed', getButtonSpec(button));
                 }
             });
         });
