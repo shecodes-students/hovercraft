@@ -15,16 +15,17 @@ const path = require('path');
 const fs = require('fs');
 const equal = require('deep-equal');
 
+const pcontinue = require('pull-continue');
+
 const pullMouse = (screen, name)=> {
     let doAbort = false;
     let source = generate(0, (state, cb)=> {
         setTimeout( ()=> {
-            cb(doAbort ? true : null, screen.getCursorScreenPoint());
-        }, 5);
+            cb(doAbort ? new Error('pullMouse aborted.') : null, screen.getCursorScreenPoint());
+        }, 50);
     });
 
     source.abort = () => {
-        console.log('ABORTING!');
         doAbort = true; 
     };
     return source;
@@ -35,6 +36,7 @@ const pullChanged = ()=> {
     return pull.filter( (()=>{
         let oldState;
         return (newState)=>{
+            //console.log('new State ', newState);
             let transition = !equal(oldState, newState);
             oldState = newState;
             return transition;
@@ -93,9 +95,7 @@ app.on('ready', function() {
     let abortable = null;
     let abort = () => {
         if (abortable) {
-            console.log('Aborting');
             abortable.abort();
-            console.log('still alive');
             abortable = null;
         }
     };
@@ -108,12 +108,10 @@ app.on('ready', function() {
 
     let createClickerStream = (buttonSpec) => {
         console.log('createClickerStream1', buttonSpec);
-        abort();
         if (!buttonSpec) return;
         abortable = pullMouse(electron.screen, 'clicker');
-        console.log('createClickerStream');
         const jitterWindow = conf.jitterWindow.curr;
-        pull(
+        return pull(
             abortable,
             // sliding-window de-jitter
             pull.asyncMap( ( ()=> {
@@ -151,27 +149,33 @@ app.on('ready', function() {
 
             // map distance to isResting
             pull.map( (distance)=> {
+                if (typeof(distance) === 'undefined') {
+                    console.log('undefined comparison');
+                    return undefined;
+                }
                 return distance < conf.precisionThresholdPx.curr;
             } ),
-
             pullChanged(),
-
-            pull.drain( ( () => { 
+            pull.asyncMap(( () => { 
                 let timer = null;
-                return (resting) => {
+                let itsOver = false;
+                return (resting, cb) => {
+                    console.log("resting: " + resting);
+                    if (typeof(resting) === 'undefined') return cb(null, null);
+                    if (itsOver)  return cb(true);
                     if (resting) {
                         if (timer) clearTimeout(timer);
                         timer = setTimeout( ()=>{
-                            abort();
-                            buttonClick(buttonSpec);
+                            itsOver = true;
+                            cb(null, currButtonSpec);
                         }, conf.waitingTime.curr); 
                     } else {
                         clearTimeout(timer);
+                        cb(null, null);
                     }
                 };
-            })(), (err) => {
-                console.log('drain ended with err', err);
-            })
+            })()),
+            pull.filter( (x) => {return x !== null;} )
         );
     };
 
@@ -198,7 +202,19 @@ app.on('ready', function() {
                     // leaving the UI, we can now start our clickerstream
                     // if we have any active click buttons
                     console.log('leave UI');
-                    createClickerStream(currButtonSpec);
+                    abort();
+                    pull(
+                        pcontinue( (i,n) => {
+                            console.log(i);
+                            if (i>2) return;
+                            return createClickerStream(currButtonSpec);
+                        }),
+                        pull.drain( (buttonSpec) => {
+                            buttonClick(buttonSpec);
+                        }, (err) => {
+                            console.log('drain ended with err', err);
+                        })
+                    );
                 }
                 wasAlreadyTouched = touched;
                 return touched ? pos : {x: null, y: null};

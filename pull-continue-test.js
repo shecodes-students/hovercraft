@@ -2,11 +2,13 @@
 /* jshint node: true */
 
 "use strict";
+var pcontinue = require('pull-continue');
 
 let pull = require('pull-stream');
 
-let clicker = (action) => {
+let makeClicker = (action) => {
     return pull.asyncMap( ( () => { 
+        console.log('i am a new stream', action);
         let count = 5; 
         return (data, cb) => {
             if (data) count--;
@@ -35,12 +37,20 @@ let clicker = (action) => {
     })() );
 };
 
+var actions = ['action1', 'azione'];
+
 pull(
-    //pull.values([null,null,null,null]),
-    pull.values([1,1,1,1,1,1,1,1,1,1]),
-    
-        clicker('action1'),
-        clicker('actione')
+    pcontinue( (i, n) => {
+        if (i<actions.length) {
+            console.log("stream number "+ i);
+            return pull(
+                //pull.values([null,null,null,null]),
+                pull.values([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]),
+                makeClicker(actions[i])
+            );
+        }
+        return;
+    }),
     
     pull.filter( x => x ),
     pull.log()
