@@ -21,23 +21,28 @@ const pullMouse = (screen, name)=> {
     let doAbort = false;
     let source = generate(0, (state, cb)=> {
         setTimeout( ()=> {
+            if (doAbort) console.log('aborting');
             cb(doAbort ? new Error('pullMouse aborted.') : null, screen.getCursorScreenPoint());
         }, 50);
     });
 
     source.abort = () => {
+        console.log('source abort on next read');
         doAbort = true; 
     };
     return source;
 };
 
-const pullChanged = ()=> {
+const pullChanged = (eatFirst)=> {
     // filter state transitions
     return pull.filter( (()=>{
         let oldState;
         return (newState)=>{
-            //console.log('new State ', newState);
             let transition = !equal(oldState, newState);
+            if (eatFirst && typeof(oldState) === 'undefined') {
+                transition = false;
+                console.log('filtering this one out because');
+            }
             oldState = newState;
             return transition;
         };
@@ -107,7 +112,7 @@ app.on('ready', function() {
     });
 
     let createClickerStream = (buttonSpec) => {
-        console.log('createClickerStream1', buttonSpec);
+        console.log('createClickerStream', buttonSpec);
         if (!buttonSpec) return;
         abortable = pullMouse(electron.screen, 'clicker');
         const jitterWindow = conf.jitterWindow.curr;
@@ -155,7 +160,7 @@ app.on('ready', function() {
                 }
                 return distance < conf.precisionThresholdPx.curr;
             } ),
-            pullChanged(),
+            pullChanged(true),
             pull.asyncMap(( () => { 
                 let timer = null;
                 let itsOver = false;
@@ -167,7 +172,7 @@ app.on('ready', function() {
                         if (timer) clearTimeout(timer);
                         timer = setTimeout( ()=>{
                             itsOver = true;
-                            cb(null, currButtonSpec);
+                            cb(null, buttonSpec);
                         }, conf.waitingTime.curr); 
                     } else {
                         clearTimeout(timer);
@@ -176,6 +181,21 @@ app.on('ready', function() {
                 };
             })()),
             pull.filter( (x) => {return x !== null;} )
+        );
+    };
+
+    const createActionSequence = (buttonSpec) => {
+        pull(
+            pcontinue( (i,n) => {
+                if (i>2) return;
+                let stream = createClickerStream(buttonSpec);
+                return stream;
+            }),
+            pull.drain( (buttonSpec) => {
+                buttonClick(buttonSpec);
+            }, (err) => {
+                console.log('drain ended with err', err);
+            })
         );
     };
 
@@ -189,7 +209,7 @@ app.on('ready', function() {
             };
         }
         ),
-        pull.map( ( () => {
+        pull.map( ( () => { // map pos to whether we hover above the UI (boolean)
             let wasAlreadyTouched = false;
             return (pos)=> {
                 let touched = pos.x >= 0 && pos.y >= 0 &&
@@ -202,25 +222,17 @@ app.on('ready', function() {
                     // leaving the UI, we can now start our clickerstream
                     // if we have any active click buttons
                     console.log('leave UI');
-                    abort();
-                    pull(
-                        pcontinue( (i,n) => {
-                            console.log(i);
-                            if (i>2) return;
-                            return createClickerStream(currButtonSpec);
-                        }),
-                        pull.drain( (buttonSpec) => {
-                            buttonClick(buttonSpec);
-                        }, (err) => {
-                            console.log('drain ended with err', err);
-                        })
-                    );
+                    if (currButtonSpec) {
+                        abort();
+                        createActionSequence(currButtonSpec);
+                        currButtonSpec = null;
+                    }
                 }
                 wasAlreadyTouched = touched;
                 return touched ? pos : {x: null, y: null};
             };
         })()),
-        pullChanged(),
+        pullChanged(false),
         pull.map( (pos)=>{ 
             if (pos.x === null) {
                 return {name: "mouseleave"};
