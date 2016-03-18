@@ -14,6 +14,7 @@ const xtend = require('xtend');
 const path = require('path');
 const fs = require('fs');
 const equal = require('deep-equal');
+const performInputActions = require('./actions');
 
 const pcontinue = require('pull-continue');
 
@@ -105,15 +106,16 @@ app.on('ready', function() {
         }
     };
 
-    let currButtonSpec = null;
-    electron.ipcMain.on('buttonPressed', (event, buttonSpec) => {
-        console.log('button activate', buttonSpec);
-        currButtonSpec = buttonSpec;
+    let currSentence = null;
+
+    electron.ipcMain.on('buttonPressed', (event, sentence) => {
+        console.log('button activate', sentence);
+        currSentence = sentence;
     });
 
-    let createClickerStream = (buttonSpec) => {
-        console.log('createClickerStream', buttonSpec);
-        if (!buttonSpec) return;
+    let createClickerStream = (sentence) => {
+        console.log('createClickerStream', sentence);
+        if (!sentence) return;
         const jitterWindow = conf.jitterWindow.curr;
         return pull(
             pullMouse(electron.screen, 'clicker'),
@@ -171,7 +173,7 @@ app.on('ready', function() {
                         if (timer) clearTimeout(timer);
                         timer = setTimeout( ()=>{
                             itsOver = true;
-                            cb(null, buttonSpec);
+                                cb(null, sentence);
                         }, conf.waitingTime.curr); 
                     } else {
                         clearTimeout(timer);
@@ -183,21 +185,44 @@ app.on('ready', function() {
         );
     };
 
-    const createActionSequence = (buttonSpec) => {
-        abortable = pull.drain( (buttonSpec) => {
-            buttonClick(buttonSpec);
+    const createActionSequence = (sentence) => {
+        abortable = pull.drain( () => {
+            //is this correct here? TODO
+            console.log('action performed');
+            mainWindow.webContents.send('clicked');
         }, (err) => {
-            console.log('drain ended with err', err);
+            mainWindow.webContents.send('sequence_ended');
+            console.log('sequence ended with err', err);
         });
+
         pull(
-            pcontinue( (i,n) => {
-                if (i>2) return;
-                let stream = createClickerStream(buttonSpec);
-                return stream;
-            }),
+            performInputActions(sentence),
             abortable
         );
     };
+
+    // space spearates clicker streams
+    // lowercase letter: press down key or button
+    // uppercase release key ot button
+    // - wait one uint of time (default to 250ms)
+    //
+
+    // keys button
+    // shift: s
+    // alt: a
+    // ctrl: c
+    // left mouse: l
+    // middle mouse: m
+    // right mouse: r
+
+    // left click: lL
+    // right click: rR
+    // shift left click: slLS
+    // left double click: lL.lL
+    // ...
+    // drag: l~L
+    // context menu select: rR~lL
+
 
     
     pull(
@@ -222,10 +247,10 @@ app.on('ready', function() {
                     // leaving the UI, we can now start our clickerstream
                     // if we have any active click buttons
                     console.log('leave UI');
-                    if (currButtonSpec) {
+                if (currSentence) {
                         abort();
-                        createActionSequence(currButtonSpec);
-                        currButtonSpec = null;
+                    createActionSequence(currSentence);
+                    currSentence = null;
                     }
                 }
                 wasAlreadyTouched = touched;
@@ -297,25 +322,6 @@ app.on('ready', function() {
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
 
-    function buttonClick(buttonSpec) {
-        for (let sym of buttonSpec.modifiers) {
-            let code = xTest.keySyms["XK_"+sym];
-            console.log(sym, code);
-            xTest.fakeKeyEvent(code, true, 0);
-        }
-
-        for(let n=0; n<buttonSpec.count; ++n) {
-            xTest.fakeButtonEvent(buttonSpec.buttonIndex, true, 0);
-            xTest.fakeButtonEvent(buttonSpec.buttonIndex, false, 0);
-        }
-
-        for (let sym of buttonSpec.modifiers) {
-            let code = xTest.keySyms["XK_"+sym];
-            xTest.fakeKeyEvent(code, false, 0);
-        }
-
-        mainWindow.webContents.send('clicked');
-    }
 
 // Emitted when the window is closed.
 mainWindow.on('closed', function() {
