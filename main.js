@@ -114,10 +114,9 @@ app.on('ready', function() {
     let createClickerStream = (buttonSpec) => {
         console.log('createClickerStream', buttonSpec);
         if (!buttonSpec) return;
-        abortable = pullMouse(electron.screen, 'clicker');
         const jitterWindow = conf.jitterWindow.curr;
         return pull(
-            abortable,
+            pullMouse(electron.screen, 'clicker'),
             // sliding-window de-jitter
             pull.asyncMap( ( ()=> {
                 let values = [];
@@ -185,17 +184,18 @@ app.on('ready', function() {
     };
 
     const createActionSequence = (buttonSpec) => {
+        abortable = pull.drain( (buttonSpec) => {
+            buttonClick(buttonSpec);
+        }, (err) => {
+            console.log('drain ended with err', err);
+        });
         pull(
             pcontinue( (i,n) => {
                 if (i>2) return;
                 let stream = createClickerStream(buttonSpec);
                 return stream;
             }),
-            pull.drain( (buttonSpec) => {
-                buttonClick(buttonSpec);
-            }, (err) => {
-                console.log('drain ended with err', err);
-            })
+            abortable
         );
     };
 
