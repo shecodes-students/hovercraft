@@ -8,7 +8,6 @@ const pullMouse = require('./pullMouse');
 const pullChanged = require('./pullChanged');
 
 module.exports = (sentence) => {
-    console.log('createClickerStream', sentence);
     if (!sentence) return;
     const jitterWindow = conf.jitterWindow.curr;
     return pull(
@@ -49,7 +48,6 @@ module.exports = (sentence) => {
             // map distance to isResting
             pull.map( (distance)=> {
                 if (typeof(distance) === 'undefined') {
-                    console.log('undefined comparison');
                     return undefined;
                 }
                 return distance < conf.precisionThresholdPx.curr;
@@ -59,7 +57,6 @@ module.exports = (sentence) => {
                 let timer = null;
                 let itsOver = false;
                 return (resting, cb) => {
-                    console.log("resting: " + resting);
                     if (typeof(resting) === 'undefined') return cb(null, null);
                     if (itsOver)  return cb(true);
                     if (resting) {

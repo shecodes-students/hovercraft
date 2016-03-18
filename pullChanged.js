@@ -13,7 +13,6 @@ module.exports = (eatFirst)=> {
             let transition = !equal(oldState, newState);
             if (eatFirst && typeof(oldState) === 'undefined') {
                 transition = false;
-                console.log('filtering this one out because');
             }
             oldState = newState;
             return transition;
