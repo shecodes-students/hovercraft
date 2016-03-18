@@ -117,15 +117,13 @@ function getModifiers() {
             modifiers.push(button.getAttribute('data-symbol'));
         }
     );
-    return modifiers;
+    return modifiers.join();
 }
 
 let getButtonSpec = (button) => {
-    return {
-        buttonIndex: parseInt(button.getAttribute('data-button')),
-        count: parseInt(button.getAttribute('data-count') || "1"),
-        modifiers: getModifiers()
-    };
+    let clickSymbols = button.getAttribute('data-symbol');
+    let modSymbols = getModifiers();
+    return modSymbols + clickSymbols + modSymbols.toUpperCase();
 };
 
 let timer = (() => {
@@ -142,10 +140,6 @@ let timer = (() => {
     };
 })();
 
-let getButtonType = (button) => {
-    return (button.getAttribute('data-button')) ? "clicks" : "modifier";
-};
-
 forEach(
     document.querySelectorAll("#clicks button,#modifiers button"),
     (button)=>{
@@ -158,28 +152,32 @@ forEach(
 );
 
 forEach(
-    document.querySelectorAll("#clicks button,#modifiers button"),
-    (button)=>{
-        button.addMyEventListener('mouseenter', () => {
-            timer.start(() => {
-                if (getButtonType(button) === 'modifier') {
-                    // toggles data-active attribute of modifier buttons
-                    let active = button.getAttribute('data-active');
-                    active = {0:1, 1:0}[active || 0];
-                    button.setAttribute('data-active', active);
-                } else {
-                    deactivateOtherClickButtons();
-                    button.setAttribute('data-active', '1');
-                    electron.ipcRenderer.send('buttonPressed', getButtonSpec(button));
-                }
-            });
-        });
-        button.addMyEventListener('mouseleave', () => {
-            timer.stop();
-        });
+    ['clicks', 'modfiers'],
+    (section) => {
+        forEach(
+            document.querySelectorAll("#" + section + " button"),
+            (button)=>{
+                button.addMyEventListener('mouseenter', () => {
+                    timer.start(() => {
+                        if (section === 'modifiers') {
+                            // toggles data-active attribute of modifier buttons
+                            let active = button.getAttribute('data-active');
+                            active = {0:1, 1:0}[active || 0];
+                            button.setAttribute('data-active', active);
+                        } else {
+                            deactivateOtherClickButtons();
+                            button.setAttribute('data-active', '1');
+                            electron.ipcRenderer.send('buttonPressed', getButtonSpec(button));
+                        }
+                    });
+                });
+                button.addMyEventListener('mouseleave', () => {
+                    timer.stop();
+                });
+            }
+        );
     }
 );
-
 // testing functionality
 document.querySelector('#testButton').addEventListener('mouseup', function(event) {
     console.log(event);

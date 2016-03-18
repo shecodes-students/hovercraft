@@ -1,6 +1,37 @@
 /* jshint -W064, -W104, -W119, -W097, -W067 */
 /* jshint node: true */
 
+
+// space spearates clicker streams
+// lowercase letter: press down key or button
+// uppercase release key ot button
+// - wait one uint of time (default to 250ms)
+//
+
+// keys button
+// shift: s
+// alt: a
+// ctrl: c
+// left mouse: l
+// middle mouse: m
+// right mouse: r
+
+// left click: lL
+// right click: rR
+// shift left click: slLS
+// left double click: lL.lL
+// ...
+// drag: l~L
+// context menu select: rR~lL
+
+
+"use strict";
+const xTest = require('node-xtest-bindings')();
+const pull = require('pull-stream');
+const pcontinue = require('pull-continue');
+const createClickerStream = require('./clickerStream');
+const conf = require('./conf');
+
 function createButtonPress(buttonIndex, down) {
     return (cb) => {
         xTest.fakeButtonEvent(buttonIndex, down, 0);
@@ -9,7 +40,7 @@ function createButtonPress(buttonIndex, down) {
 }
 
 function createKeyPress(keySymbol, down) {
-    let code = xTest.keySyms["XK_"+sym];
+    let code = xTest.keySyms["XK_"+keySymbol];
     return (cb) => {
         xTest.fakeKeyEvent(code, down, 0);
         cb(null);
@@ -59,9 +90,7 @@ function createAction(symbols) {
 }
 
 function createActions(sentence) {
-    return sentence.split('~').map((section) => {
-        createAction(section);
-    });
+    return sentence.split('~').map( createAction );
 }
 
 module.exports = (sentence) => {
@@ -72,7 +101,6 @@ module.exports = (sentence) => {
             let stream = createClickerStream(actions[i]);
             return stream;
         }),
-        pull.asyncMap( (f, cb) => { f(cb); } ),
-        abortable
+        pull.asyncMap( (f, cb) => { f(cb); } )
     );
 };

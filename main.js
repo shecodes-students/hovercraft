@@ -1,10 +1,7 @@
 /* jshint -W064, -W104, -W119, -W097, -W067 */
 /* jshint node: true */
 
-// this is a change
-//
 'use strict';
-const xTest = require('node-xtest-bindings')();
 const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;  // Module to create native browser window.
@@ -13,52 +10,10 @@ const generate = require('pull-generate');
 const xtend = require('xtend');
 const path = require('path');
 const fs = require('fs');
-const equal = require('deep-equal');
 const performInputActions = require('./actions');
-
-const pcontinue = require('pull-continue');
-
-const pullMouse = (screen, name)=> {
-    let doAbort = false;
-    let source = generate(0, (state, cb)=> {
-        setTimeout( ()=> {
-            if (doAbort) console.log('aborting');
-            cb(doAbort ? new Error('pullMouse aborted.') : null, screen.getCursorScreenPoint());
-        }, 50);
-    });
-
-    source.abort = () => {
-        console.log('source abort on next read');
-        doAbort = true; 
-    };
-    return source;
-};
-
-const pullChanged = (eatFirst)=> {
-    // filter state transitions
-    return pull.filter( (()=>{
-        let oldState;
-        return (newState)=>{
-            let transition = !equal(oldState, newState);
-            if (eatFirst && typeof(oldState) === 'undefined') {
-                transition = false;
-                console.log('filtering this one out because');
-            }
-            oldState = newState;
-            return transition;
-        };
-    })());
-};
-
-let conf = require('rc')("hovercraft", {
-    width: 160, 
-    height: 470,
-    x: 20,
-    y: 20,
-    precisionThresholdPx: {min:0, max:0.1, curr: 0.05},
-    jitterWindow: {min: 1, max: 240, curr: 80},
-    waitingTime: {min: 100, max: 5000, curr: 2000} 
-});
+const conf = require('./conf');
+const pullMouse = require('./pullMouse');
+const pullChanged = require('./pullChanged');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -88,14 +43,14 @@ app.on('ready', function() {
         autoHideMenuBar: true,
         webPreferences: {
             webgl: false,
-        webaudio: false
+            webaudio: false
         }
     },
     conf
     );
     mainWindow = new BrowserWindow(
         usedConfig
-        );
+    );
     bounds = mainWindow.getBounds();
 
     let abortable = null;
@@ -113,78 +68,6 @@ app.on('ready', function() {
         currSentence = sentence;
     });
 
-    let createClickerStream = (sentence) => {
-        console.log('createClickerStream', sentence);
-        if (!sentence) return;
-        const jitterWindow = conf.jitterWindow.curr;
-        return pull(
-                pullMouse(electron.screen, 'clicker'),
-                // sliding-window de-jitter
-                pull.asyncMap( ( ()=> {
-                    let values = [];
-                    return (value, cb) => {
-                        values.unshift(value);
-                        if (values.length < jitterWindow) {
-                            return cb(null, undefined);
-                        }
-                        pull(
-                            pull.values(values),
-                            pull.reduce((a,b)=>{return {x:a.x+b.x, y:a.y+b.y};}, {x:0, y:0}, (err, sum)=> {
-                                values.pop();
-                                cb(err, {x: sum.x / jitterWindow, y: sum.y / jitterWindow});
-                            })
-                            );
-                    };
-                })()),
-
-
-                // map position to distance
-                pull.map( (() => {
-                    let previousPosition;
-                    return (currentPosition)=> {
-                        if (previousPosition) {
-                            let distanceX = currentPosition.x - previousPosition.x;
-                            let distanceY = currentPosition.y - previousPosition.y;
-                            previousPosition = currentPosition;
-                            return Math.sqrt(Math.pow(distanceX,2) + Math.pow(distanceY,2));
-                        }
-                        previousPosition = currentPosition;
-                        return undefined;
-                    };
-                })()),
-
-                // map distance to isResting
-                pull.map( (distance)=> {
-                    if (typeof(distance) === 'undefined') {
-                        console.log('undefined comparison');
-                        return undefined;
-                    }
-                    return distance < conf.precisionThresholdPx.curr;
-                } ),
-                pullChanged(true),
-                pull.asyncMap(( () => { 
-                    let timer = null;
-                    let itsOver = false;
-                    return (resting, cb) => {
-                        console.log("resting: " + resting);
-                        if (typeof(resting) === 'undefined') return cb(null, null);
-                        if (itsOver)  return cb(true);
-                        if (resting) {
-                            if (timer) clearTimeout(timer);
-                            timer = setTimeout( ()=>{
-                                itsOver = true;
-                                cb(null, sentence);
-                            }, conf.waitingTime.curr); 
-                        } else {
-                            clearTimeout(timer);
-                            cb(null, null);
-                        }
-                    };
-                })()),
-                pull.filter( (x) => {return x !== null;} )
-                    );
-    };
-
     const createActionSequence = (sentence) => {
         abortable = pull.drain( () => {
             //is this correct here? TODO
@@ -196,34 +79,10 @@ app.on('ready', function() {
         });
 
         pull(
-            performInputActions(sentence),
-            abortable
-        );
+                performInputActions(sentence),
+                abortable
+            );
     };
-
-    // space spearates clicker streams
-    // lowercase letter: press down key or button
-    // uppercase release key ot button
-    // - wait one uint of time (default to 250ms)
-    //
-
-    // keys button
-    // shift: s
-    // alt: a
-    // ctrl: c
-    // left mouse: l
-    // middle mouse: m
-    // right mouse: r
-
-    // left click: lL
-    // right click: rR
-    // shift left click: slLS
-    // left double click: lL.lL
-    // ...
-    // drag: l~L
-    // context menu select: rR~lL
-
-
 
     pull(
             pullMouse(electron.screen, 'position'),
@@ -307,7 +166,6 @@ app.on('ready', function() {
         bounds = mainWindow.getBounds();
     };
 
-
     mainWindow.webContents.on('dom-ready', () => {
         mainWindow.setAlwaysOnTop(true);
         //send config values
@@ -321,7 +179,6 @@ app.on('ready', function() {
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
-
 
     // Emitted when the window is closed.
     mainWindow.on('closed', function() {
