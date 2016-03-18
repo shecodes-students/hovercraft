@@ -117,13 +117,15 @@ function getModifiers() {
             modifiers.push(button.getAttribute('data-symbol'));
         }
     );
-    return modifiers.join();
+    return modifiers.join('');
 }
 
-let getButtonSpec = (button) => {
+let getSentence = (button) => {
     let clickSymbols = button.getAttribute('data-symbol');
     let modSymbols = getModifiers();
-    return modSymbols + clickSymbols + modSymbols.toUpperCase();
+    let ret = modSymbols + clickSymbols + modSymbols.toUpperCase().split('').reverse().join('');
+    console.log('sentence', ret);
+    return ret;
 };
 
 let timer = (() => {
@@ -152,7 +154,7 @@ forEach(
 );
 
 forEach(
-    ['clicks', 'modfiers'],
+    ['clicks', 'modifiers'],
     (section) => {
         forEach(
             document.querySelectorAll("#" + section + " button"),
@@ -167,7 +169,7 @@ forEach(
                         } else {
                             deactivateOtherClickButtons();
                             button.setAttribute('data-active', '1');
-                            electron.ipcRenderer.send('buttonPressed', getButtonSpec(button));
+                            electron.ipcRenderer.send('buttonPressed', getSentence(button));
                         }
                     });
                 });

@@ -72,7 +72,7 @@ var dict = {
     c: createKeyPress("Control_L", true),
     C: createKeyPress("Control_L", false),
     s: createKeyPress('Shift_L', true),
-    S: createKeyPress('_Shift_L', false),
+    S: createKeyPress('Shift_L', false),
     '.': createPause(100)
 };
 
