@@ -88,14 +88,14 @@ app.on('ready', function() {
         autoHideMenuBar: true,
         webPreferences: {
             webgl: false,
-            webaudio: false
+        webaudio: false
         }
     },
-        conf
+    conf
     );
     mainWindow = new BrowserWindow(
         usedConfig
-    );
+        );
     bounds = mainWindow.getBounds();
 
     let abortable = null;
@@ -118,71 +118,71 @@ app.on('ready', function() {
         if (!sentence) return;
         const jitterWindow = conf.jitterWindow.curr;
         return pull(
-            pullMouse(electron.screen, 'clicker'),
-            // sliding-window de-jitter
-            pull.asyncMap( ( ()=> {
-                let values = [];
-                return (value, cb) => {
-                    values.unshift(value);
-                    if (values.length < jitterWindow) {
-                        return cb(null, undefined);
-                    }
-                    pull(
-                        pull.values(values),
-                        pull.reduce((a,b)=>{return {x:a.x+b.x, y:a.y+b.y};}, {x:0, y:0}, (err, sum)=> {
-                            values.pop();
-                            cb(err, {x: sum.x / jitterWindow, y: sum.y / jitterWindow});
-                        })
-                    );
-                };
-            })()),
+                pullMouse(electron.screen, 'clicker'),
+                // sliding-window de-jitter
+                pull.asyncMap( ( ()=> {
+                    let values = [];
+                    return (value, cb) => {
+                        values.unshift(value);
+                        if (values.length < jitterWindow) {
+                            return cb(null, undefined);
+                        }
+                        pull(
+                            pull.values(values),
+                            pull.reduce((a,b)=>{return {x:a.x+b.x, y:a.y+b.y};}, {x:0, y:0}, (err, sum)=> {
+                                values.pop();
+                                cb(err, {x: sum.x / jitterWindow, y: sum.y / jitterWindow});
+                            })
+                            );
+                    };
+                })()),
 
 
-            // map position to distance
-            pull.map( (() => {
-                let previousPosition;
-                return (currentPosition)=> {
-                    if (previousPosition) {
-                        let distanceX = currentPosition.x - previousPosition.x;
-                        let distanceY = currentPosition.y - previousPosition.y;
+                // map position to distance
+                pull.map( (() => {
+                    let previousPosition;
+                    return (currentPosition)=> {
+                        if (previousPosition) {
+                            let distanceX = currentPosition.x - previousPosition.x;
+                            let distanceY = currentPosition.y - previousPosition.y;
+                            previousPosition = currentPosition;
+                            return Math.sqrt(Math.pow(distanceX,2) + Math.pow(distanceY,2));
+                        }
                         previousPosition = currentPosition;
-                        return Math.sqrt(Math.pow(distanceX,2) + Math.pow(distanceY,2));
-                    }
-                    previousPosition = currentPosition;
-                    return undefined;
-                };
-            })()),
+                        return undefined;
+                    };
+                })()),
 
-            // map distance to isResting
-            pull.map( (distance)=> {
-                if (typeof(distance) === 'undefined') {
-                    console.log('undefined comparison');
-                    return undefined;
-                }
-                return distance < conf.precisionThresholdPx.curr;
-            } ),
-            pullChanged(true),
-            pull.asyncMap(( () => { 
-                let timer = null;
-                let itsOver = false;
-                return (resting, cb) => {
-                    console.log("resting: " + resting);
-                    if (typeof(resting) === 'undefined') return cb(null, null);
-                    if (itsOver)  return cb(true);
-                    if (resting) {
-                        if (timer) clearTimeout(timer);
-                        timer = setTimeout( ()=>{
-                            itsOver = true;
-                                cb(null, sentence);
-                        }, conf.waitingTime.curr); 
-                    } else {
-                        clearTimeout(timer);
-                        cb(null, null);
+                // map distance to isResting
+                pull.map( (distance)=> {
+                    if (typeof(distance) === 'undefined') {
+                        console.log('undefined comparison');
+                        return undefined;
                     }
-                };
-            })()),
-            pull.filter( (x) => {return x !== null;} )
-        );
+                    return distance < conf.precisionThresholdPx.curr;
+                } ),
+                pullChanged(true),
+                pull.asyncMap(( () => { 
+                    let timer = null;
+                    let itsOver = false;
+                    return (resting, cb) => {
+                        console.log("resting: " + resting);
+                        if (typeof(resting) === 'undefined') return cb(null, null);
+                        if (itsOver)  return cb(true);
+                        if (resting) {
+                            if (timer) clearTimeout(timer);
+                            timer = setTimeout( ()=>{
+                                itsOver = true;
+                                cb(null, sentence);
+                            }, conf.waitingTime.curr); 
+                        } else {
+                            clearTimeout(timer);
+                            cb(null, null);
+                        }
+                    };
+                })()),
+                pull.filter( (x) => {return x !== null;} )
+                    );
     };
 
     const createActionSequence = (sentence) => {
@@ -224,51 +224,51 @@ app.on('ready', function() {
     // context menu select: rR~lL
 
 
-    
-    pull(
-        pullMouse(electron.screen, 'position'),
-        pull.map( (pos) => { 
-            return { 
-                x: pos.x - bounds.x,
-                y: pos.y - bounds.y
-            };
-        }
-        ),
-        pull.map( ( () => { // map pos to whether we hover above the UI (boolean)
-            let wasAlreadyTouched = false;
-            return (pos)=> {
-                let touched = pos.x >= 0 && pos.y >= 0 &&
-                    pos.x < bounds.width && pos.y < bounds.height;
 
-                if (touched && !wasAlreadyTouched) {
-                    console.log('enter UI');
-                    abort();
-                } else if (!touched && wasAlreadyTouched) {
-                    // leaving the UI, we can now start our clickerstream
-                    // if we have any active click buttons
-                    console.log('leave UI');
+    pull(
+            pullMouse(electron.screen, 'position'),
+            pull.map( (pos) => { 
+                return { 
+                    x: pos.x - bounds.x,
+            y: pos.y - bounds.y
+                };
+            }
+            ),
+            pull.map( ( () => { // map pos to whether we hover above the UI (boolean)
+                let wasAlreadyTouched = false;
+                return (pos)=> {
+                    let touched = pos.x >= 0 && pos.y >= 0 &&
+                pos.x < bounds.width && pos.y < bounds.height;
+
+            if (touched && !wasAlreadyTouched) {
+                console.log('enter UI');
+                abort();
+            } else if (!touched && wasAlreadyTouched) {
+                // leaving the UI, we can now start our clickerstream
+                // if we have any active click buttons
+                console.log('leave UI');
                 if (currSentence) {
-                        abort();
+                    abort();
                     createActionSequence(currSentence);
                     currSentence = null;
-                    }
                 }
-                wasAlreadyTouched = touched;
-                return touched ? pos : {x: null, y: null};
-            };
-        })()),
-        pullChanged(false),
-        pull.map( (pos)=>{ 
-            if (pos.x === null) {
-                return {name: "mouseleave"};
-            } else {
-                return {name:"mousemove", position: pos};
             }
-        }),
-        pull.drain( (event)=> {
-            if (mainWindow) 
+            wasAlreadyTouched = touched;
+            return touched ? pos : {x: null, y: null};
+                };
+            })()),
+            pullChanged(false),
+            pull.map( (pos)=>{ 
+                if (pos.x === null) {
+                    return {name: "mouseleave"};
+                } else {
+                    return {name:"mousemove", position: pos};
+                }
+            }),
+            pull.drain( (event)=> {
+                if (mainWindow) 
                 mainWindow.webContents.send(event.name, event.position);
-        })
+            })
     );
 
     let updateConfig = (type, data)=> {
@@ -323,11 +323,11 @@ app.on('ready', function() {
     mainWindow.loadURL('file://' + __dirname + '/index.html');
 
 
-// Emitted when the window is closed.
-mainWindow.on('closed', function() {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
-    mainWindow = null;
-});
+    // Emitted when the window is closed.
+    mainWindow.on('closed', function() {
+        // Dereference the window object, usually you would store windows
+        // in an array if your app supports multi windows, this is the time
+        // when you should delete the corresponding element.
+        mainWindow = null;
+    });
 });
