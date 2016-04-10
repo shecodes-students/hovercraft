@@ -6,7 +6,7 @@ var electron = require('electron');
 
 let waitingTime = 2000;
 
-const forEach = (array, func) => [].forEach.call(array, func);
+const forEach = (array, func) => Array.from(array).forEach(func);
 
 
 document.querySelector('#settings').addEventListener('click', ()=> {
