@@ -73,7 +73,7 @@ app.on('ready', function() {
     };
 
     pull(
-        pullMouse(electron.screen, 'position'),
+        pullMouse(electron.screen),
         pull.map( (pos) => {
             return {
                 x: pos.x - bounds.x,

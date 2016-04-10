@@ -11,7 +11,7 @@ module.exports = (sentence) => {
     if (!sentence) return;
     const jitterWindow = conf.jitterWindow.curr;
     return pull(
-        pullMouse(electron.screen, 'clicker'),
+        pullMouse(electron.screen),
         // sliding-window de-jitter
         pull.asyncMap( ( ()=> {
             let values = [];

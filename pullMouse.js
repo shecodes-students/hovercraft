@@ -2,7 +2,7 @@
 /* jshint node: true */
 "use strict";
 const generate = require('pull-generate');
-module.exports = (screen, name)=> {
+module.exports = (screen)=> {
     let doAbort = false;
     let source = generate(0, (state, cb)=> {
         setTimeout( ()=> {
