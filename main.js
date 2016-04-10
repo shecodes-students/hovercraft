@@ -37,11 +37,8 @@ app.on('ready', function() {
             webaudio: false
         }
     },
-    conf
-    );
-    mainWindow = new BrowserWindow(
-        usedConfig
-    );
+    conf);
+    mainWindow = new BrowserWindow(usedConfig);
     bounds = mainWindow.getBounds();
 
     let abortable = null;
@@ -70,60 +67,60 @@ app.on('ready', function() {
         });
 
         pull(
-                performInputActions(sentence),
-                abortable
-            );
+            performInputActions(sentence),
+            abortable
+        );
     };
 
     pull(
-            pullMouse(electron.screen, 'position'),
-            pull.map( (pos) => { 
-                return { 
-                    x: pos.x - bounds.x,
-            y: pos.y - bounds.y
-                };
-            }
-            ),
-            pull.map( ( () => { // map pos to whether we hover above the UI (boolean)
-                let wasAlreadyTouched = false;
-                return (pos)=> {
-                    let touched = pos.x >= 0 && pos.y >= 0 &&
+        pullMouse(electron.screen, 'position'),
+        pull.map( (pos) => {
+            return {
+                x: pos.x - bounds.x,
+                y: pos.y - bounds.y
+            };
+        }),
+        // map pos to whether we hover above the UI (boolean)
+        pull.map( ( () => {
+            let wasAlreadyTouched = false;
+            return (pos)=> {
+                let touched = pos.x >= 0 && pos.y >= 0 &&
                 pos.x < bounds.width && pos.y < bounds.height;
 
-            if (touched && !wasAlreadyTouched) {
-                console.log('enter UI');
-                abort();
-            } else if (!touched && wasAlreadyTouched) {
-                // leaving the UI, we can now start our clickerstream
-                // if we have any active click buttons
-                console.log('leave UI');
-                if (currSentence) {
+                if (touched && !wasAlreadyTouched) {
+                    console.log('enter UI');
                     abort();
-                    createActionSequence(currSentence);
-                    currSentence = null;
+                } else if (!touched && wasAlreadyTouched) {
+                    // leaving the UI, we can now start our clickerstream
+                    // if we have any active click buttons
+                    console.log('leave UI');
+                    if (currSentence) {
+                        abort();
+                        createActionSequence(currSentence);
+                        currSentence = null;
+                    }
                 }
+                wasAlreadyTouched = touched;
+                return touched ? pos : {x: null, y: null};
+            };
+        })()),
+        pullChanged(false),
+        pull.map( (pos)=>{
+            if (pos.x === null) {
+                return {name: "mouseleave"};
+            } else {
+                return {name:"mousemove", position: pos};
             }
-            wasAlreadyTouched = touched;
-            return touched ? pos : {x: null, y: null};
-                };
-            })()),
-            pullChanged(false),
-            pull.map( (pos)=>{ 
-                if (pos.x === null) {
-                    return {name: "mouseleave"};
-                } else {
-                    return {name:"mousemove", position: pos};
-                }
-            }),
-            pull.drain( (event)=> {
-                if (mainWindow) 
-                mainWindow.webContents.send(event.name, event.position);
-            })
+        }),
+        pull.drain( (event)=> {
+            if (mainWindow)
+            mainWindow.webContents.send(event.name, event.position);
+        })
     );
 
     let updateConfig = (type, data)=> {
         let home = process.env.HOME;
-        let filename = path.join(home, '.hovercraftrc'); 
+        let filename = path.join(home, '.hovercraftrc');
         let settings;
         try {
             settings = fs.readFileSync(filename);
