@@ -8,7 +8,6 @@ let waitingTime = 2000;
 
 const forEach = (array, func) => Array.from(array).forEach(func);
 
-
 document.querySelector('#settings').addEventListener('click', ()=> {
     let infoSection = document.querySelector('#info');
     infoSection.style.display = {"none": "block", "block": "none"}[infoSection.style.display || "none"];
@@ -59,13 +58,13 @@ electron.ipcRenderer.on('mousemove', (event, pos) => {
         if (el) {
             fireEvent(el, "mouseenter");
             el.classList.add('hover');
-        } 
+        }
         currentButton = el;
     }
 });
 
 electron.ipcRenderer.on('mouseleave', () => {
-    document.body.style.backgroundColor=null;
+    document.body.style.backgroundColor = null;
     if (currentButton) {
         fireEvent(currentButton, "mouseleave");
         currentButton.classList.remove('hover');
@@ -88,7 +87,7 @@ electron.ipcRenderer.on('config', (event, config) => {
         }
     );
 });
-        
+
 
 let deactivateOtherClickButtons = () => {
     forEach(
@@ -100,11 +99,6 @@ let deactivateOtherClickButtons = () => {
 };
 
 electron.ipcRenderer.on('clicked', ()=>{
-    deactivateOtherClickButtons();
-    currentButton = null;
-});
-
-electron.ipcRenderer.on('friendly fire', ()=>{
     deactivateOtherClickButtons();
     currentButton = null;
 });
@@ -123,9 +117,9 @@ function getModifiers() {
 let getSentence = (button) => {
     let clickSymbols = button.getAttribute('data-symbol');
     let modSymbols = getModifiers();
-    let ret = modSymbols + clickSymbols + modSymbols.toUpperCase().split('').reverse().join('');
-    console.log('sentence', ret);
-    return ret;
+    let sentence = modSymbols + clickSymbols + modSymbols.toUpperCase().split('').reverse().join('');
+    console.log('sentence', sentence);
+    return sentence;
 };
 
 let timer = (() => {
@@ -135,7 +129,6 @@ let timer = (() => {
             if (timerId) this.stop(timerId);
             timerId = setTimeout(cb, waitingTime);
         },
-
         stop: ()=>{
             clearTimeout(timerId);
         }
