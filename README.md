@@ -6,7 +6,10 @@ You need to have Node 5.10.0 installed before you can run `npm install`. (If you
 
 Use [nvm](https://github.com/creationix/nvm) to easily switch between Node versions.
 
+Additionally, to build node-xtest-bindings (the module that actually fakes mouse clicks), you need to have the xtest library development files installed.
+
 ```
+sudo apt-get install libxtst-dev
 nvm use 5.10.0
 npm i
 ```
