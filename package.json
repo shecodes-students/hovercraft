@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/shecodes-students/hovercraft#readme",
   "devDependencies": {
-    "electron-prebuilt": "^0.36.0",
+    "electron-prebuilt": "0.36.1",
     "electron-packager": "~5.2.1"
   },
   "dependencies": {
