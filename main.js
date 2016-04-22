@@ -52,14 +52,12 @@ app.on('ready', function() {
     let currSentence = null;
 
     electron.ipcMain.on('buttonPressed', (event, sentence) => {
-        console.log('button activate', sentence);
         currSentence = sentence;
     });
 
     const createActionSequence = (sentence) => {
         abortable = pull.drain( () => {
             //is this correct here? TODO
-            console.log('action performed');
             mainWindow.webContents.send('clicked');
         }, (err) => {
             mainWindow.webContents.send('sequence_ended');
@@ -113,8 +111,9 @@ app.on('ready', function() {
             }
         }),
         pull.drain( (event)=> {
-            if (mainWindow)
-            mainWindow.webContents.send(event.name, event.position);
+            if (mainWindow) {
+                mainWindow.webContents.send(event.name, event.position);
+            }
         })
     );
 

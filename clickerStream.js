@@ -8,7 +8,6 @@ const pullMouse = require('./pullMouse');
 const pullChanged = require('./pullChanged');
 
 module.exports = (sentence) => {
-    if (!sentence) return;
     const jitterWindow = conf.jitterWindow.curr;
     return pull(
         pullMouse(electron.screen),

@@ -89,6 +89,7 @@ function createAction(symbols) {
     };
 }
 
+// returns an array of async functions
 function createActions(sentence) {
     return sentence.split('~').map( createAction );
 }
