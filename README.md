@@ -1,3 +1,22 @@
+## How to contribute
+
+### Prerequisites
+Hovercraft is made for Ubuntu 14.x or later.
+You need to have Node 5.10.0 installed before you can run `npm install`. (If you have a different version of Node installed while running `npm install`, the native modules will not be compatible with the version of electron we use)
+
+Use [nvm](https://github.com/creationix/nvm) to easily switch between Node versions.
+
+```
+nvm use 5.10.0
+npm i
+```
+
+After waiting quite a while, you can then run hovercraft.
+
+```
+npm start
+```
+
 ## How do I start applications automatically on login?
 
 [![Join the chat at https://gitter.im/shecodes-students/hovercraft](https://badges.gitter.im/shecodes-students/hovercraft.svg)](https://gitter.im/shecodes-students/hovercraft?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
