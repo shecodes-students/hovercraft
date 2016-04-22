@@ -21,10 +21,6 @@ body,body>section {
     flex-direction: column;
 }
 
-#testButton {
-    margin-top: .5em;
-}
-
 body>section {
     margin-top: 10px;
     margin-bottom: 10px;
