@@ -4,8 +4,8 @@
   "description": "trigger different kinds of clicks when the pointer hovers. With support for modifier keys (alt, shift, ctrl etc.)",
   "main": "main.js",
   "scripts": {
-    "package": "electron-packager . hovercraft --overwrite --platform=linux --arch=x64 --version=0.36.1 && tar -czvf _hovercraft.tar.gz hovercraft-linux-x64",
-    "deploy": "git co gh-pages && cp _hovercraft.tar.gz hovercraft.tar.gz && git ci -am'deploy' && git push origin gh-pages && git co master",
+    "package": "electron-packager . hovercraft --overwrite --platform=linux --arch=x64 --version=0.36.1 && tar -czvf hovercraft.tar.gz hovercraft-linux-x64",
+    "deploy": "scp -P 30000 hovercraft.tar.gz kitchen-sessions.org:/var/www/hovercraft",
     "start": "electron main.js"
   },
   "repository": {
