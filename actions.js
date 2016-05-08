@@ -32,9 +32,14 @@ const pcontinue = require('pull-continue');
 const createClickerStream = require('./clickerStream');
 const conf = require('./conf');
 
+let depressions = {};
+
 function createButtonPress(buttonIndex, down) {
     return (cb) => {
         xTest.fakeButtonEvent(buttonIndex, down, 0);
+        depressions['button' + buttonIndex] = down ? ()=> {
+            xTest.fakeButtonEvent(buttonIndex, false, 0);
+        } : null;
         cb(null);
     };
 }
@@ -43,6 +48,9 @@ function createKeyPress(keySymbol, down) {
     let code = xTest.keySyms["XK_"+keySymbol];
     return (cb) => {
         xTest.fakeKeyEvent(code, down, 0);
+        depressions[code] = down ? () => {
+            xTest.fakeKeyEvent(code, false, 0);
+        } : null;
         cb(null);
     };
 }
@@ -51,6 +59,7 @@ function createPause(delay) {
     return (cb) => {
         setTimeout(
             ()=> {
+                console.log("Pause");
                 cb(null);
             },
             delay
@@ -82,6 +91,8 @@ function createAction(symbols) {
         pull(
             pull.values(subactions),
             pull.asyncMap( (f, cb) => {
+                // output simple timestamp
+                process.stdout.write((Date.now()/1000) + " ");
                 f(cb);
             }),
             pull.collect(cb)
@@ -104,4 +115,12 @@ module.exports = (sentence) => {
         }),
         pull.asyncMap( (f, cb) => { f(cb); } )
     );
+};
+
+module.exports.endDepressions = ()=> {
+    for(let key in depressions) {
+        let f = depressions[key];
+        if (f !== null) f();
+        depressions[key] = null;
+    }
 };

@@ -57,11 +57,10 @@ app.on('ready', function() {
 
     const createActionSequence = (sentence) => {
         abortable = pull.drain( () => {
-            //is this correct here? TODO
             currSentence = null;
             mainWindow.webContents.send('clicked');
         }, (err) => {
-            mainWindow.webContents.send('sequence_ended');
+            performInputActions.endDepressions();
             console.log('sequence ended with err', err);
         });
 
