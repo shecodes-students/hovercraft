@@ -89,17 +89,19 @@ electron.ipcRenderer.on('config', (event, config) => {
 });
 
 
-let deactivateOtherClickButtons = () => {
+let deactivateOtherClickButtons = (theButton) => {
     forEach(
         document.querySelectorAll("#clicks button"),
         (button)=>{
-            button.setAttribute('data-active', '0');
+            if (button !== theButton) {
+                button.setAttribute('data-active', '0');
+            }
         }
     );
 };
 
 electron.ipcRenderer.on('clicked', ()=>{
-    deactivateOtherClickButtons();
+    deactivateOtherClickButtons(null);
     currentButton = null;
 });
 
@@ -114,11 +116,16 @@ function getModifiers() {
     return modifiers.join('');
 }
 
-let getSentence = (button) => {
-    let clickSymbols = button.getAttribute('data-symbol');
+function getClickSymbols() {
+    let button = document.querySelector('#clicks button[data-active="1"]');
+    return button ? button.getAttribute('data-symbol') : null;
+}
+
+let getSentence = () => {
+    let clickSymbols = getClickSymbols();
+    if (clickSymbols === null) return null;
     let modSymbols = getModifiers();
     let sentence = modSymbols + clickSymbols + modSymbols.toUpperCase().split('').reverse().join('');
-    console.log('sentence', sentence);
     return sentence;
 };
 
@@ -154,15 +161,13 @@ forEach(
             (button)=>{
                 button.addMyEventListener('mouseenter', () => {
                     timer.start(() => {
-                        if (section === 'modifiers') {
-                            // toggles data-active attribute of modifier buttons
-                            let active = button.getAttribute('data-active');
-                            active = {0:1, 1:0}[active || 0];
-                            button.setAttribute('data-active', active);
-                        } else {
-                            deactivateOtherClickButtons();
-                            button.setAttribute('data-active', '1');
-                            electron.ipcRenderer.send('buttonPressed', getSentence(button));
+                        // toggles data-active attribute of button
+                        let active = button.getAttribute('data-active');
+                        active = {0:1, 1:0}[active || 0];
+                        button.setAttribute('data-active', active);
+                        if (section === 'clicks') {
+                            deactivateOtherClickButtons(button);
+                            electron.ipcRenderer.send('buttonPressed', getSentence());
                         }
                     });
                 });
