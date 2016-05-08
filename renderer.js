@@ -13,6 +13,16 @@ document.querySelector('#settings').addEventListener('click', ()=> {
     infoSection.style.display = {"none": "block", "block": "none"}[infoSection.style.display || "none"];
 });
 
+document.addEventListener('dragover', function(event) {
+    event.preventDefault();
+    return false;
+}, false);
+
+document.addEventListener('drop', function(event) {
+    event.preventDefault();
+    return false;
+}, false);
+
 let format=(value)=>{
     return Math.floor(value*10000)/10000;
 };
