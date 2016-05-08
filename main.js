@@ -58,6 +58,7 @@ app.on('ready', function() {
     const createActionSequence = (sentence) => {
         abortable = pull.drain( () => {
             //is this correct here? TODO
+            currSentence = null;
             mainWindow.webContents.send('clicked');
         }, (err) => {
             mainWindow.webContents.send('sequence_ended');
@@ -95,7 +96,6 @@ app.on('ready', function() {
                     if (currSentence) {
                         abort();
                         createActionSequence(currSentence);
-                        currSentence = null;
                     }
                 }
                 wasAlreadyTouched = touched;
