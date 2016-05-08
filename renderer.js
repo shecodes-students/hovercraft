@@ -135,7 +135,7 @@ let getSentence = () => {
     let clickSymbols = getClickSymbols();
     if (clickSymbols === null) return null;
     let modSymbols = getModifiers();
-    let sentence = modSymbols + clickSymbols + modSymbols.toUpperCase().split('').reverse().join('');
+    let sentence = modSymbols + "." + clickSymbols + "." + modSymbols.toUpperCase().split('').reverse().join('');
     return sentence;
 };
 
